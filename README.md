@@ -27,7 +27,6 @@ Your task is to take this basic app and make it **production-ready** for deploym
 The repository also contains a CI/CD tool. You must **update the CI/CD pipeline** with the necessary steps to support this new deployment.
 
 * **Goal:** The pipeline steps themselves do not need to be fully functional. The objective is to demonstrate a basic understanding of how to **structure and set up the pipeline** for this kind of deployment.
-```
 
 
 
