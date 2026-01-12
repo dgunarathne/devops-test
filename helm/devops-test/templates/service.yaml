@@ -1,1 +1,11 @@
-
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devops-test.name" . }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ include "devops-test.name" . }}
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: 80
