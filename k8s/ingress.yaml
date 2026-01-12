@@ -1,1 +1,19 @@
-
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-test
+  namespace: devops-test
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: devops-test.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: devops-test
+            port:
+              number: 80
