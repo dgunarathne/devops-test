@@ -232,6 +232,45 @@ helm rollback devops-test 1
 
 ---
 
+## TLS Configuration (Simulated Certificate)
+
+To satisfy the requirement that the application be accessible at **[https://target.example.com](https://target.example.com)**, the Helm chart includes an Ingress resource configured for TLS termination. Since the domain is not expected to resolve in this test environment, a **simulated/self‑signed TLS certificate** is used to model a real production setup.
+
+### TLS Generation Example
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt \
+  -subj "/CN=target.example.com/O=target.example.com"
+```
+
+### Create Kubernetes TLS Secret
+
+```bash
+kubectl create secret tls target-example-tls \
+  --cert=tls.crt \
+  --key=tls.key
+```
+
+The Ingress resource references this secret:
+
+```yaml
+tls:
+  - hosts:
+      - target.example.com
+    secretName: target-example-tls
+```
+
+This ensures that:
+
+* HTTPS is enforced
+* TLS termination is properly modeled
+* The cluster is configured exactly as it would be in production
+
+In a real enterprise environment, this would typically be replaced by **cert-manager**, integrated with **Let’s Encrypt** or a corporate PKI.
+
+---
+
 ## Operational Considerations
 
 * Health probes should be added before production
@@ -272,18 +311,3 @@ It is structured to meet expectations for:
 * SRE and DevSecOps roles
 
 ---
-
-## Author
-
-Designed and implemented as a professional DevOps reference architecture for Kubernetes‑based application modernization and secure continuous delivery.
-
----
-
-## Status
-
-Fully containerized
-Kubernetes‑ready
-Helm‑managed
-CI/CD automated
-Security‑validated
-Prod
