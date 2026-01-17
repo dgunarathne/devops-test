@@ -1,5 +1,5 @@
 web:
-  image: your-dockerhub-username/devops-test
+  image: <ECR_URL>/devops-test
   tag: latest
   replicas: 1
   servicePort: 80
