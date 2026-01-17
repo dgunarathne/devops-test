@@ -1,22 +1,27 @@
-name: DevSecOps CI-CD Pipeline
+name: DevSecOps CI-CD Pipeline (AWS ECR)
 
 on:
   push:
     branches: ["main"]
 
 jobs:
-  build-test-scan-deploy:
+  build-scan-deploy:
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: devops-test
+      CLUSTER_NAMESPACE: default
 
     steps:
     # ---------------------------
-    # Checkout
+    # Checkout source
     # ---------------------------
     - name: Checkout code
       uses: actions/checkout@v3
 
     # ---------------------------
-    # SonarQube / SonarCloud Scan
+    # SonarQube / SonarCloud
     # ---------------------------
     - name: SonarQube Scan
       uses: SonarSource/sonarcloud-github-action@master
@@ -30,9 +35,9 @@ jobs:
           -Dsonar.host.url=https://sonarcloud.io
 
     # ---------------------------
-    # SAST - Trivy source scan
+    # SAST - Trivy filesystem scan
     # ---------------------------
-    - name: SAST - Trivy filesystem scan
+    - name: SAST - Trivy FS scan
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: fs
@@ -40,40 +45,46 @@ jobs:
         exit-code: 1
 
     # ---------------------------
-    # Docker build setup
+    # Configure AWS credentials
     # ---------------------------
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Login to DockerHub
-      uses: docker/login-action@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
     # ---------------------------
-    # Build & Push Image
+    # Login to AWS ECR
     # ---------------------------
-    - name: Build and push image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: Dockerfile
-        push: true
-        tags: your-dockerhub-username/devops-test:latest
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
     # ---------------------------
-    # Image vulnerability scan
+    # Build & Push image to ECR
+    # ---------------------------
+    - name: Build and push Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+    # ---------------------------
+    # SAST - Trivy image scan
     # ---------------------------
     - name: SAST - Trivy image scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: your-dockerhub-username/devops-test:latest
+        image-ref: ${{ env.IMAGE }}
         severity: HIGH,CRITICAL
         exit-code: 1
 
     # ---------------------------
-    # Kubernetes + Helm setup
+    # Setup kubectl & Helm
     # ---------------------------
     - name: Setup kubectl
       uses: azure/setup-kubectl@v3
@@ -87,20 +98,21 @@ jobs:
         echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
 
     # ---------------------------
-    # Deploy using Helm
+    # Helm deploy from ECR
     # ---------------------------
-    - name: Deploy to Kubernetes
+    - name: Deploy to Kubernetes using Helm
       run: |
         helm upgrade --install devops-test helm/devops-test \
-        --set web.image=your-dockerhub-username/devops-test \
-        --set web.tag=latest
+          --namespace $CLUSTER_NAMESPACE \
+          --create-namespace \
+          --set web.image.repository=$(echo $IMAGE | cut -d':' -f1) \
+          --set web.image.tag=$(echo $IMAGE | cut -d':' -f2)
 
     # ---------------------------
-    # DAST - OWASP ZAP scan
+    # DAST - OWASP ZAP
     # ---------------------------
-    - name: DAST - OWASP ZAP baseline scan
+    - name: DAST - OWASP ZAP Baseline Scan
       uses: zaproxy/action-baseline@v0.9.0
       with:
-        target: "http://web.default.svc.cluster.local"
-        rules_file_name: ".zap/rules.tsv"
+        target: "http://web.${{ env.CLUSTER_NAMESPACE }}.svc.cluster.local"
         cmd_options: "-a"
