@@ -1,33 +1,16 @@
-replicaCount: 2
-
-image:
-  repository: ghcr.io/YOUR_ORG/devops-test
+web:
+  image: your-dockerhub-username/devops-test
   tag: latest
-  pullPolicy: IfNotPresent
+  replicas: 1
+  servicePort: 80
 
-service:
-  type: ClusterIP
-  port: 80
+mysql:
+  image: mysql:8
+  db: targets
+  user: targets
+  password: password
+  rootPassword: rootpassword
+  storage: 5Gi
 
-ingress:
-  enabled: true
-  className: nginx
-  hosts:
-    - host: devops-test.local
-      paths:
-        - path: /
-          pathType: Prefix
-
-resources:
-  requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
-    cpu: 500m
-    memory: 256Mi
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 70
+app:
+  id: "1234"
