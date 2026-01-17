@@ -14,3 +14,9 @@ mysql:
 
 app:
   id: "1234"
+
+ingress:
+  enabled: true
+  className: nginx
+  host: target.example.com
+  tlsSecret: target-example-tls
