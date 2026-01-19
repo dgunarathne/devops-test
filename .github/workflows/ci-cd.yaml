@@ -30,7 +30,7 @@ jobs:
       with:
         args: >
           -Dsonar.projectKey=devops-test
-          -Dsonar.organization=your-org
+          -Dsonar.organization=<ORG.Name>
           -Dsonar.sources=.
           -Dsonar.host.url=https://sonarcloud.io
 
