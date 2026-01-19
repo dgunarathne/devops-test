@@ -291,23 +291,3 @@ In a real enterprise environment, this would typically be replaced by **cert-man
 * PodSecurity admission
 * Zero‑trust ingress
 
----
-
-## Why This Design
-
-This implementation demonstrates:
-
-* Cloud‑native architecture principles
-* Kubernetes operational maturity
-* DevSecOps best practices
-* Enterprise‑grade CI/CD design
-* Production‑ready Helm packaging
-
-It is structured to meet expectations for:
-
-* Senior DevOps Engineers
-* Platform Engineers
-* Cloud Architects
-* SRE and DevSecOps roles
-
----
